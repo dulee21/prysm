@@ -58,11 +58,24 @@ func ProcessBlockHeader(
 		return nil, err
 	}
 
-	// Verify proposer signature.
-	sig := block.Signature()
-	if err := VerifyBlockSignature(beaconState, block.Block().ProposerIndex(), sig[:], block.Block().HashTreeRoot); err != nil {
+	// 로직 추가
+	// Verify proposer is not slashed
+	// 읽기 전용 검증자 인터페이스는 왜 만든 것인가? 그냥 객체를 불러와 사용하면 되는 것 아닌가?
+	// 왜 읽기 전용과 쓰기 전용 인터페이스가 있는 것인가?
+	proposer, err := beaconState.ValidatorAtIndexReadOnly(block.Block().ProposerIndex())
+	if err != nil {
 		return nil, err
 	}
+
+	if proposer.Slashed() {
+		return nil, fmt.Errorf("proposer at index %d was previously slashed", block.Block().ProposerIndex())
+	}
+
+	// Verify proposer signature.
+	// sig := block.Signature()
+	// if err := VerifyBlockSignature(beaconState, block.Block().ProposerIndex(), sig[:], block.Block().HashTreeRoot); err != nil {
+	// 	return nil, err
+	// }
 
 	return beaconState, nil
 }
