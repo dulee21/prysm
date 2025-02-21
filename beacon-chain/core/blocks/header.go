@@ -58,19 +58,6 @@ func ProcessBlockHeader(
 		return nil, err
 	}
 
-	// 로직 추가
-	// Verify proposer is not slashed
-	// 읽기 전용 검증자 인터페이스는 왜 만든 것인가? 그냥 객체를 불러와 사용하면 되는 것 아닌가?
-	// 왜 읽기 전용과 쓰기 전용 인터페이스가 있는 것인가?
-	proposer, err := beaconState.ValidatorAtIndexReadOnly(block.Block().ProposerIndex())
-	if err != nil {
-		return nil, err
-	}
-
-	if proposer.Slashed() {
-		return nil, fmt.Errorf("proposer at index %d was previously slashed", block.Block().ProposerIndex())
-	}
-
 	// Verify proposer signature.
 	// sig := block.Signature()
 	// if err := VerifyBlockSignature(beaconState, block.Block().ProposerIndex(), sig[:], block.Block().HashTreeRoot); err != nil {
@@ -155,16 +142,6 @@ func ProcessBlockHeaderNoVerify(
 			parentRoot, parentHeaderRoot[:])
 	}
 
-	// Verify proposer is not slashed
-	// 블록 제안자가 슬래시되지 않았는지 확인
-	proposer, err := beaconState.ValidatorAtIndexReadOnly(idx)
-	if err != nil {
-		return nil, err
-	}
-	if proposer.Slashed() {
-		return nil, fmt.Errorf("proposer at index %d was previously slashed", idx)
-	}
-
 	// Cache current block as the new latest block
 	// 현재 블록을 새로운 최신 블록으로 설정
 	if err := beaconState.SetLatestBlockHeader(&ethpb.BeaconBlockHeader{
@@ -177,6 +154,15 @@ func ProcessBlockHeaderNoVerify(
 		return nil, err
 	}
 
+	// Verify proposer is not slashed
+	// 블록 제안자가 슬래시되지 않았는지 확인
+	proposer, err := beaconState.ValidatorAtIndexReadOnly(idx)
+	if err != nil {
+		return nil, err
+	}
+	if proposer.Slashed() {
+		return nil, fmt.Errorf("proposer at index %d was previously slashed", idx)
+	}
 	// fmt.Println("Slot: ", slot)
 	// fmt.Println("ProposerIndex: ", proposerIndex)
 	// fmt.Printf("ParentRoot: %x\n", parentRoot)
